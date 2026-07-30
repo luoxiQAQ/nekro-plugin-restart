@@ -21,9 +21,9 @@
 https://github.com/luoxiQAQ/nekro-plugin-restart.git
 ```
 
-仓库根目录直接包含 `__init__.py`，市场模块名为 `restart`。安装后在 WebUI 插件管理中启用“重启管理”。
+仓库根目录直接包含 `__init__.py`，市场模块名为 `nekro_restart`。安装后在 WebUI 插件管理中启用“重启管理”。
 
-手动安装时，也可以将仓库内容放到 `plugins/workdir/restart/` 后重启 Nekro Agent。
+手动安装时，也可以将仓库内容放到 `plugins/workdir/nekro_restart/` 后重启 Nekro Agent。
 
 官方 Docker Compose 已将 `/var/run/docker.sock` 挂载到主服务，并配置了 `restart: unless-stopped`，默认 `auto` 模式可直接使用。
 
@@ -40,7 +40,7 @@ https://github.com/luoxiQAQ/nekro-plugin-restart.git
 | `/na 定时重启 状态` | 查看定时重启状态 |
 | `/na 重启状态` | 查看当前任务和上次重启结果 |
 
-如果命令系统启用了插件命名空间，也可以使用 `/restart:na 重启`。
+如果命令系统启用了插件命名空间，也可以使用 `/nekro_restart:na 重启`。
 
 ## 主要配置
 

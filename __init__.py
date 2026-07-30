@@ -30,9 +30,9 @@ from nekro_agent.api.schemas import AgentCtx
 
 plugin = NekroPlugin(
     name="重启管理",
-    module_name="restart",
+    module_name="nekro_restart",
     description="通过管理员命令或 Cron 计划安全重启 Nekro Agent",
-    version="1.0.4",
+    version="1.0.5",
     author="luoxiQAQ",
     url="https://github.com/luoxiQAQ/nekro-plugin-restart",
     allow_sleep=False,
