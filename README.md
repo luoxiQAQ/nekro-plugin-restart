@@ -9,7 +9,7 @@
 - `auto` 模式优先重启当前 Docker 容器，失败后回退为进程退出。
 - 支持五段 Cron 定时重启，默认关闭。
 - 防止重复创建重启任务或重复调度器。
-- 手动重启后向原频道发送完成耗时和内存信息。
+- 手动重启后向原频道发送完成耗时、内存、系统盘和数据盘占用信息。
 - 定时重启可配置通知频道。
 - 支持 Nekro Agent 已接入的多种消息适配器。
 
@@ -26,6 +26,13 @@ https://github.com/luoxiQAQ/nekro-plugin-restart.git
 手动安装时，也可以将仓库内容放到 `plugins/workdir/nekro_restart/` 后重启 Nekro Agent。
 
 官方 Docker Compose 已将 `/var/run/docker.sock` 挂载到主服务，并配置了 `restart: unless-stopped`，默认 `auto` 模式可直接使用。
+
+若要显示宿主机真实系统盘占用，请为 Nekro Agent 容器增加只读挂载：
+
+```yaml
+volumes:
+  - /:/host:ro
+```
 
 ## 命令
 
@@ -54,6 +61,9 @@ https://github.com/luoxiQAQ/nekro-plugin-restart.git
 | `SCHEDULE_NOTIFY_CHAT_KEY` | 空 | 定时重启完成通知频道 |
 | `DOCKER_SOCKET_PATH` | `/var/run/docker.sock` | Docker Socket 路径 |
 | `SHOW_MEMORY_INFO` | `true` | 完成通知是否显示内存 |
+| `SHOW_DISK_INFO` | `true` | 完成通知是否显示磁盘占用 |
+| `SYSTEM_DISK_PATH` | `/host` | 宿主机系统盘只读挂载路径，不存在时回退到 `/` |
+| `DATA_DISK_PATH` | `/root/srv/nekro_agent` | Nekro Agent 数据盘挂载路径 |
 
 ## 重启模式
 

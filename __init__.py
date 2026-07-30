@@ -32,7 +32,7 @@ plugin = NekroPlugin(
     name="重启管理",
     module_name="nekro_restart",
     description="通过管理员命令或 Cron 计划安全重启 Nekro Agent",
-    version="1.0.5",
+    version="1.0.6",
     author="luoxiQAQ",
     url="https://github.com/luoxiQAQ/nekro-plugin-restart",
     allow_sleep=False,
@@ -115,6 +115,20 @@ class RestartConfig(ConfigBase):
         default=True,
         title="完成通知显示内存",
     )
+    SHOW_DISK_INFO: bool = Field(
+        default=True,
+        title="完成通知显示磁盘占用",
+    )
+    SYSTEM_DISK_PATH: str = Field(
+        default="/host",
+        title="系统盘路径",
+        description="建议将宿主机根目录只读挂载到 /host；路径不可用时回退到容器根目录 /",
+    )
+    DATA_DISK_PATH: str = Field(
+        default="/root/srv/nekro_agent",
+        title="数据盘路径",
+        description="Nekro Agent 数据目录在容器内的挂载路径",
+    )
 
 
 config = plugin.get_config(RestartConfig)
@@ -182,6 +196,35 @@ def _memory_info() -> str:
     return f"{used / gib:.1f}GB/{memory.total / gib:.1f}GB ({memory.percent:.1f}%)"
 
 
+def _disk_usage(path: str, fallback: str = "/") -> dict[str, Any]:
+    configured_path = path.strip()
+    selected_path = configured_path if configured_path and os.path.exists(configured_path) else fallback
+    usage = psutil.disk_usage(selected_path)
+    return {
+        "path": selected_path,
+        "configured_path": configured_path,
+        "used_bytes": usage.used,
+        "total_bytes": usage.total,
+        "free_bytes": usage.free,
+        "percent": usage.percent,
+    }
+
+
+def _disk_info_text(info: dict[str, Any]) -> str:
+    gib = 1024**3
+    return (
+        f"{info['used_bytes'] / gib:.1f}GB/{info['total_bytes'] / gib:.1f}GB "
+        f"({info['percent']:.1f}%，可用 {info['free_bytes'] / gib:.1f}GB)"
+    )
+
+
+def _disk_snapshot() -> dict[str, dict[str, Any]]:
+    return {
+        "system": _disk_usage(config.SYSTEM_DISK_PATH),
+        "data": _disk_usage(config.DATA_DISK_PATH),
+    }
+
+
 async def _set_json(key: str, value: dict[str, Any]) -> None:
     await store.set(store_key=key, value=json.dumps(value, ensure_ascii=False))
 
@@ -223,6 +266,16 @@ async def _notify_restart_complete() -> None:
     if config.SHOW_MEMORY_INFO:
         message += f"\n内存：{_memory_info()}"
 
+    disk_usage: dict[str, dict[str, Any]] = {}
+    if config.SHOW_DISK_INFO:
+        try:
+            disk_usage = _disk_snapshot()
+            message += f"\n系统盘：{_disk_info_text(disk_usage['system'])}"
+            message += f"\n数据盘：{_disk_info_text(disk_usage['data'])}"
+        except Exception:
+            plugin.logger.exception("读取磁盘占用失败")
+            message += "\n磁盘：读取失败"
+
     chat_key = str(pending.get("chat_key", "")).strip()
     deadline = time.monotonic() + config.NOTICE_RETRY_SECONDS
     notified = not chat_key
@@ -246,6 +299,7 @@ async def _notify_restart_complete() -> None:
             "completed_at": time.time(),
             "elapsed_seconds": elapsed,
             "notified": notified,
+            "disk_usage": disk_usage,
         },
     )
     await _clear_pending()
